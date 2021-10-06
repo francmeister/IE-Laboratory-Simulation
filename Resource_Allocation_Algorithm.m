@@ -60,7 +60,7 @@ for M = 4:4:16
         end
         figure(1)
         plot(UU, SU_network_throughput_columnly_arr)
-        title('BER as a function of SNR, verification');
+        title('Relationship between number of SUs & Throughput');
         ylabel('Throughput');
         xlabel('PU power')
         legend('M=4', 'M=8','M=16');
