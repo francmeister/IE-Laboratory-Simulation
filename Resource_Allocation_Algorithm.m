@@ -1,34 +1,78 @@
 N = 128;% Number of subcarriers
-M = 16;% number of secondary users
+M = 16  ;% number of secondary users
 K = 10;% number of primary users
 E_g = 0.1;% Average value of inteference channel gain (g)
-E_f = 1;% Average value of channel gain (f)
-power_inteference_per_PU = 20;% power limit on each subcarrier derived from the PU interference threshold
-substation_power_per_SU = 50;% power limit on each subcarrier derived from the secondary base station power budget
+E_f = 1;% Average value of channel  gain (f)
+pow_in_DB_for_SU = 20;
+pow_in_DB_for_PU = 12;
+substation_power_per_SU = 10^ (pow_in_DB_for_SU/20) ;% power limit on each subcarrier derived from the secondary base station power budget
+power_inteference_per_PU = 10^ (pow_in_DB_for_PU/20);% power limit on each subcarrier derived from the PU interference threshold
 N_o = 1; %Normalized AWGN noise
 d = 0.1 ;% Average PU interference gain on SU on a single channel
-U = 100;%Transmit power per Primary User
-J = d*U; %PU interference on a secondary user
+U = 160;%Transmit power per Primary User;
+J = d*10^ (U/20) ; %PU interference on a secondary user
 num_subcarrier_per_SU = N /M ;
 
 frames = 10^4;
 percentage_users_allocated_ =0;
 SU_network_throughput_=0;
+SU_network_throughput_columnly_ = 0;
+SU_network_throughput_columnly_arr =[];
+SU_network_throughput_arr = [] ;
 fairness_index_ = 0 ;
 
-for iter =1:frames
-[users_subcarriers users_subcarriers_powers_i h_array_2D f_array_2D] = phase_one(N,M,E_g,E_f,power_inteference_per_PU);
-[users_subcarriers_powers_y final_power_allocations SU_network_throughput fairness_index] = phase_two(users_subcarriers_powers_i,f_array_2D,substation_power_per_SU,N_o,J,N, M,num_subcarrier_per_SU);
-sum_powers = sum(users_subcarriers_powers_i,2);
-num_SU_allocated = size(sum_powers);
+for M = 4:4:16
+    if M ~=12
+        num_subcarrier_per_SU = N /M ;
+        for U = 1:30
+            J = d*10^ (U/20) ;%;
+            for iter =1:frames
 
-percentage_users_allocated_ =percentage_users_allocated_+ (num_SU_allocated(1)/M) *100;
-SU_network_throughput_ = SU_network_throughput_ +SU_network_throughput;
-fairness_index_ = fairness_index_ + fairness_index ;
+                [users_subcarriers users_subcarriers_powers_i h_array_2D f_array_2D] = phase_one(N,M,E_g,E_f,power_inteference_per_PU);
+                [users_subcarriers_powers_y final_power_allocations SU_network_throughput fairness_index SU_network_throughput_columnly ] = phase_two(users_subcarriers_powers_i,f_array_2D,substation_power_per_SU,N_o,J,N, M,num_subcarrier_per_SU);
+                sum_powers = sum(users_subcarriers_powers_i,2);
+                num_SU_allocated = size(sum_powers);
+
+                percentage_users_allocated_ =percentage_users_allocated_+ (num_SU_allocated(1)/M) *100;
+                SU_network_throughput_ = SU_network_throughput_ + SU_network_throughput;
+                SU_network_throughput_columnly_ = SU_network_throughput_columnly_ +SU_network_throughput_columnly;
+                fairness_index_ = fairness_index_ + fairness_index ;
+
+                if iter==frames
+                    %             percentage_users_allocate_d = percentage_users_allocated_/frames;
+                    SU_network_throughput_arr(U) = SU_network_throughput_/frames;
+                    SU_network_throughput_columnly_arr(U) = SU_network_throughput_columnly_/frames;
+                    %             fairness_index_ = fairness_index_/frames ;
+                    %             final_power_allocations = final_power_allocations;
+                    %             sumf= sum(final_power_allocations,2);
+                    %             users_subcarriers;
+                    %             final_power_allocations_ = size(final_power_allocations);
+
+                    %reset
+                    %             percentage_users_allocated_ =0;
+                    SU_network_throughput_=0;
+                    SU_network_throughput_columnly_ = 0;
+                    %             fairness_index_ = 0 ;
+
+                end
+            end
+
+        end
+        figure(1)
+        plot(UU, SU_network_throughput_columnly_arr)
+        title('BER as a function of SNR, verification');
+        ylabel('Throughput');
+        xlabel('PU power')
+        legend('M=4', 'M=8','M=16');
+        grid on;
+        hold on
+        SU_network_throughput_columnly_arr = [];
+        SU_network_throughput_arr=[];
+
+    end
+
 end
-percentage_users_allocate_d = percentage_users_allocated_/frames
-SU_network_throughput_ = SU_network_throughput_/frames
-fairness_index_ = fairness_index_/frames 
+hold off
 
 function [users_subcarriers users_subcarriers_powers_i h_array_2D f_array_2D] = phase_one(N,M,E_g,E_f,power_inteference_per_PU)
 % Calculate the average number of subcarriers to allocate to each SU
@@ -48,6 +92,7 @@ power_per_subcarrier_i = power_inteference_per_PU/N;
 h_array = sort(h_array);
 beta = 1;
 n = 1;
+n = 1.2 ;
 % Run a for loop that assigns subcarriers to secondary users
 for m = 1:M
     column_num = 1;
@@ -62,6 +107,8 @@ for m = 1:M
         column_num = column_num + 1;
     end
     n = n+0.1;
+    n = 1.2 ;
+
 end
 users_subcarriers = trim_matrix(users_subcarriers);
 users_subcarriers_powers_i = trim_matrix(users_subcarriers_powers_i);
@@ -73,7 +120,7 @@ function power_value = calculate_SU_power_allocation(beta,power_per_subcarrier_i
 power_value = power_per_subcarrier_i/h_array(beta);
 end
 
-function [users_subcarriers_powers_y final_power_allocations SU_network_throughput fairness_index ] = phase_two(users_subcarriers_powers_i,f_array_2D,substation_power_per_SU,N_o,J,N,M, num_subcarrier_per_SU)
+function [users_subcarriers_powers_y final_power_allocations SU_network_throughput fairness_index SU_network_throughput_columnly ] = phase_two(users_subcarriers_powers_i,f_array_2D,substation_power_per_SU,N_o,J,N,M, num_subcarrier_per_SU)
 users_subcarriers_powers_y = power_allocation(f_array_2D,substation_power_per_SU);
 final_power_allocations = min(users_subcarriers_powers_i,users_subcarriers_powers_y);
 SU_network_throughput = (f_array_2D.*final_power_allocations)/(J+N_o);
@@ -95,7 +142,9 @@ end
 
 SU_network_throughput_in_col_form  = sum(SU_network_throughput,2);
 M_covered_SU = length(subcarriers_per_SU);
+SU_network_throughput_columnly = [];
 for i=1:M_covered_SU
+    SU_network_throughput_columnly(i) = SU_network_throughput_in_col_form(i)/subcarriers_per_SU(i) ;
     SU_network_throughput_in_col_form(i) = SU_network_throughput_in_col_form(i)/subcarriers_per_SU(i) ;
 end
 
@@ -105,7 +154,8 @@ fairness_index_denominator = SU_network_throughput_in_col_form .^2 ;
 fairness_index_denominator = sum(fairness_index_denominator, "all");
 fairness_index = fairness_index_numarator/( M_covered_SU * fairness_index_denominator );
 
-SU_network_throughput = sum(SU_network_throughput,"all")/M_covered_SU;
+SU_network_throughput = sum(SU_network_throughput,"all")/N;
+SU_network_throughput_columnly = sum(SU_network_throughput_columnly,"all");
 end
 
 function users_subcarriers_powers = power_allocation(gain_array,power_per_user)
