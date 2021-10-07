@@ -13,14 +13,17 @@ U = 160;%Transmit power per Primary User;
 J = d*10^ (U/20) ; %PU interference on a secondary user
 num_subcarrier_per_SU = N /M ;
 
-frames = 10^4;
+frames = 10^5;
 percentage_users_allocated_ =0;
 SU_network_throughput_=0;
 SU_network_throughput_columnly_ = 0;
+fairness_index_ = 0 ;
 SU_network_throughput_columnly_arr =[];
 SU_network_throughput_arr = [] ;
-fairness_index_ = 0 ;
+fairness_index_arr = [] ;
+percentage_users_allocate_d_arr = [];
 
+M_count = 1 ;
 for M = 4:4:16
     if M ~=12
         num_subcarrier_per_SU = N /M ;
@@ -39,20 +42,21 @@ for M = 4:4:16
                 fairness_index_ = fairness_index_ + fairness_index ;
 
                 if iter==frames
-                    %             percentage_users_allocate_d = percentage_users_allocated_/frames;
+
                     SU_network_throughput_arr(U) = SU_network_throughput_/frames;
                     SU_network_throughput_columnly_arr(U) = SU_network_throughput_columnly_/frames;
-                    %             fairness_index_ = fairness_index_/frames ;
+                    fairness_index_arr(U) = fairness_index_/frames ;
+
                     %             final_power_allocations = final_power_allocations;
                     %             sumf= sum(final_power_allocations,2);
                     %             users_subcarriers;
                     %             final_power_allocations_ = size(final_power_allocations);
 
                     %reset
-                    %             percentage_users_allocated_ =0;
+                    percentage_users_allocated_ =0;
                     SU_network_throughput_=0;
                     SU_network_throughput_columnly_ = 0;
-                    %             fairness_index_ = 0 ;
+                    fairness_index_ = 0 ;
 
                 end
             end
@@ -60,19 +64,55 @@ for M = 4:4:16
         end
         figure(1)
         plot(UU, SU_network_throughput_columnly_arr)
-        title('Relationship between number of SUs & Throughput');
-        ylabel('Throughput');
-        xlabel('PU power')
+        title('Relationship between PU SNR and Throughput');
+        ylabel('Throughput (bit/sec/Hz)');
+        xlabel('PU SNR (dB)')
         legend('M=4', 'M=8','M=16');
         grid on;
+        grid minor;
         hold on
-        SU_network_throughput_columnly_arr = [];
-        SU_network_throughput_arr=[];
+
+        figure(2)
+        plot(UU, fairness_index_arr)
+        title('Relationship between PU SNR and  Fairness index');
+        ylabel('Fairness Index');
+        xlabel('PU SNR (dB)')
+        legend('M=4', 'M=8','M=16');
+        grid on;
+        grid minor;
+        hold on
+
+%         figure(3)
+%         plot(fairness_index_arr, SU_network_throughput_columnly_arr)
+%         title('Relationship between Fairness Index and Throughput');
+%         ylabel('Throughput (bit/sec/Hz)');
+%         xlabel('Fairness Index');
+%         legend('M=4', 'M=8','M=16');
+%         grid on;
+%         grid minor;
+%         hold on
+%         SU_network_throughput_columnly_arr = [];
+%         fairness_index_arr=[];
+
+        percentage_users_allocate_d_arr(M_count) = percentage_users_allocated_/frames;
+        M_count = M_count + 1 ;
+        percentage_users_allocated_ =0;
 
     end
 
 end
 hold off
+%         figure(4)
+%         M = [4 8 16];
+%         plot(M, percentage_users_allocate_d_arr)
+%         title('Relationship between Fairness Index and Throughput');
+%         ylabel('Throughput (bit/sec/Hz)');
+%         xlabel('Fairness Index');
+%         legend('M=4', 'M=8','M=16');
+%         grid on;
+%         grid minor;
+%         hold on
+
 
 function [users_subcarriers users_subcarriers_powers_i h_array_2D f_array_2D] = phase_one(N,M,E_g,E_f,power_inteference_per_PU)
 % Calculate the average number of subcarriers to allocate to each SU
@@ -80,9 +120,12 @@ N_ave = N/M;
 users_subcarriers = zeros(M,15); % An array to keep track of which subcariers are allocated to which SUs
 users_subcarriers_powers_i = zeros(M,15); % An array to keep track of powers allocated to SUs subcarriers
 % Generate an array of random inteference channel gains (g) each mapped to its own subcarrier
+
 h_array = normrnd(E_g,0.1,[1,N]); % Normal distribution with mean E_g and standard deviation 0.1
 h_array = abs(h_array);
 f_array = normrnd(E_f,0.1,[1,N]); % For each subchannel generate the respective f gains
+% h_array = raylpdf([1:0.1:N], E_g);
+% f_array = raylpdf([1:0.1:N], E_f);
 f_array_2D = zeros(M,15);
 h_array_2D = zeros(M,15);
 power_per_subcarrier_i = power_inteference_per_PU/N;
